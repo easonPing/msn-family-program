@@ -18,84 +18,64 @@
     <p id="clearMessage" class="message"></p>
   </div>
   <script>
-    // Fetch results from Netlify FaunaDB backend and build the table
-    async function loadResults() {
+    function loadResults() {
       const container = document.getElementById('resultsContainer');
       container.innerHTML = '';
-      try {
-        const response = await fetch('/.netlify/functions/get-results');
-        const data = await response.json();
-        const responses = (data && data.results) || [];
-        if (responses.length === 0) {
-          container.textContent = '暂无问卷记录。';
-          return;
-        }
-        const table = document.createElement('table');
-        table.style.width = '100%';
-        table.style.borderCollapse = 'collapse';
-        const headerRow = document.createElement('tr');
-        const headers = ['账号', '时间', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12', 'Q13', 'Q14', 'Q15', 'Q16'];
-        headers.forEach(h => {
-          const th = document.createElement('th');
-          th.textContent = h;
-          th.style.border = '1px solid #ccc';
-          th.style.padding = '6px';
-          th.style.backgroundColor = '#f5f5f5';
-          th.style.fontSize = '12px';
-          headerRow.appendChild(th);
-        });
-        table.appendChild(headerRow);
-        responses.forEach(res => {
-          const tr = document.createElement('tr');
-          const cells = [];
-          cells.push(res.username);
-          cells.push(new Date(res.timestamp).toLocaleString());
-          for (let i = 1; i <= 14; i++) {
-            cells.push(res.answers['q' + i] || '');
-          }
-          const q15 = Array.isArray(res.answers['q15']) ? res.answers['q15'].join(',') : '';
-          cells.push(q15);
-          const q16 = Array.isArray(res.answers['q16']) ? res.answers['q16'].join('>') : '';
-          cells.push(q16);
-          cells.forEach(cell => {
-            const td = document.createElement('td');
-            td.textContent = cell;
-            td.style.border = '1px solid #ccc';
-            td.style.padding = '4px';
-            td.style.fontSize = '12px';
-            tr.appendChild(td);
-          });
-          table.appendChild(tr);
-        });
-        container.appendChild(table);
-      } catch (err) {
-        console.error('Load results error:', err);
-        container.textContent = '加载问卷记录时出错。';
+      const responses = JSON.parse(localStorage.getItem('responses') || '[]');
+      if (responses.length === 0) {
+        container.textContent = '暂无问卷记录。';
+        return;
       }
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      const headerRow = document.createElement('tr');
+      const headers = ['账号', '时间', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12', 'Q13', 'Q14', 'Q15', 'Q16'];
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        th.style.border = '1px solid #ccc';
+        th.style.padding = '6px';
+        th.style.backgroundColor = '#f5f5f5';
+        th.style.fontSize = '12px';
+        headerRow.appendChild(th);
+      });
+      table.appendChild(headerRow);
+      responses.forEach(res => {
+        const tr = document.createElement('tr');
+        const cells = [];
+        cells.push(res.username);
+        cells.push(new Date(res.timestamp).toLocaleString());
+        for (let i = 1; i <= 14; i++) {
+          cells.push(res.answers['q' + i] || '');
+        }
+        // Q15 array to comma-separated letters
+        const q15 = res.answers['q15'] ? res.answers['q15'].join(',') : '';
+        cells.push(q15);
+        // Q16 rank array
+        const q16 = res.answers['q16'] ? res.answers['q16'].join('>') : '';
+        cells.push(q16);
+        cells.forEach(cell => {
+          const td = document.createElement('td');
+          td.textContent = cell;
+          td.style.border = '1px solid #ccc';
+          td.style.padding = '4px';
+          td.style.fontSize = '12px';
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+      container.appendChild(table);
     }
     document.addEventListener('DOMContentLoaded', () => {
       loadResults();
-      document.getElementById('clearButton').addEventListener('click', async () => {
+      document.getElementById('clearButton').addEventListener('click', () => {
         const msgEl = document.getElementById('clearMessage');
         if (confirm('确定要删除所有记录吗？此操作不可撤销。')) {
-          try {
-            const res = await fetch('/.netlify/functions/clear-results', {
-              method: 'POST'
-            });
-            const data = await res.json();
-            if (data && data.success) {
-              msgEl.style.color = '#2a7b3f';
-              msgEl.textContent = '所有记录已清空。';
-            } else {
-              msgEl.style.color = '#c52d2f';
-              msgEl.textContent = (data && data.error) || '清空失败。';
-            }
-            loadResults();
-          } catch (err) {
-            console.error('Clear results error:', err);
-            msgEl.style.color = '#c52d2f';
-            msgEl.textContent = '清空失败，请稍后再试。';
-          }
+          localStorage.removeItem('responses');
+          msgEl.style.color = '#2a7b3f';
+          msgEl.textContent = '所有记录已清空。';
+          loadResults();
         }
       });
     });

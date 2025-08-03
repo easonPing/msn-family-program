@@ -4,6 +4,10 @@
   # Publish the root directory which contains our HTML, CSS and JS
   publish = "."
 
+[build.environment]
+  # Use Node 18 to ensure global fetch is available in Netlify Functions
+  NODE_VERSION = "18"
+
 # Optional: set the Node version if your functions require a specific version
 # [build.environment]
 #   NODE_VERSION = "18"

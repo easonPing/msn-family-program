@@ -1,18 +1,18 @@
-const faunadb = require('faunadb');
+/*
+ * We use the global fetch API available in modern Node runtimes to call
+ * Supabase's REST endpoints.  Ensure your Netlify environment uses Node 18+.
+ */
 
 /*
- * Register a new user in the FaunaDB users collection.  This function expects
- * a POST request with a JSON body containing a `username` and `password`.
- * It checks for existing users via the `users_by_username` index and
- * creates a new document when the username is unused.  A FaunaDB secret
- * must be provided in the environment under `FAUNADB_SECRET` for the client
- * connection.  The function returns a JSON response indicating success or
- * an error message.
+ * Register a new user using Supabase.  This endpoint expects a POST request
+ * with a JSON body containing `username` and `password`.  The Supabase
+ * service role key should be supplied via environment variables
+ * `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`.  A user row is inserted when
+ * the username is not already taken.
  */
-const q = faunadb.query;
-const client = new faunadb.Client({
-  secret: process.env.FAUNADB_SECRET,
-});
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -38,38 +38,38 @@ exports.handler = async function (event) {
     };
   }
   try {
-    // Determine if a user already exists using the index.  If the index is not
-    // present this will throw.  Users should create an index named
-    // `users_by_username` in Fauna with terms: `data.username` and unique: true.
-    const exists = await client.query(
-      q.Exists(q.Match(q.Index('users_by_username'), username))
-    );
-    if (exists) {
+    // Check if the user already exists via Supabase REST
+    const getRes = await fetch(`${supabaseUrl}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id`, {
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+    });
+    const existing = await getRes.json();
+    if (Array.isArray(existing) && existing.length > 0) {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'User already exists' }),
       };
     }
-    // Create the user document.  For security reasons passwords should be
-    // hashed before storing; however, for simplicity this example stores the
-    // plain text password.  Do not use this approach in production.
-    await client.query(
-      q.Create(q.Collection('users'), {
-        data: {
-          username,
-          password,
-        },
-      })
-    );
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true }),
-    };
+    // Insert the new user
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/users`, {
+      method: 'POST',
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!insertRes.ok) {
+      const errBody = await insertRes.text();
+      return { statusCode: insertRes.status, body: errBody };
+    }
+    return { statusCode: 200, body: JSON.stringify({ success: true }) };
   } catch (err) {
-    console.error('FaunaDB register error:', err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
+    console.error('Supabase register error:', err);
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };

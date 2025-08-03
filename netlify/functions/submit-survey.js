@@ -1,14 +1,10 @@
-const faunadb = require('faunadb');
-
 /*
- * Persist a survey response in the `responses` collection.  The request
- * body should contain `username` and an `answers` object matching the
- * structure created by the client.  A timestamp is added automatically.
+ * Persist a survey response in the `responses` table using Supabase.
+ * The request body should contain `username` and an `answers` object.
  */
-const q = faunadb.query;
-const client = new faunadb.Client({
-  secret: process.env.FAUNADB_SECRET,
-});
+/* Use the global fetch API available in Node 18+ */
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -39,20 +35,23 @@ exports.handler = async function (event) {
     answers,
   };
   try {
-    await client.query(
-      q.Create(q.Collection('responses'), {
-        data: entry,
-      })
-    );
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true }),
-    };
+    const res = await fetch(`${supabaseUrl}/rest/v1/responses`, {
+      method: 'POST',
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(entry),
+    });
+    if (!res.ok) {
+      const errBody = await res.text();
+      return { statusCode: res.status, body: errBody };
+    }
+    return { statusCode: 200, body: JSON.stringify({ success: true }) };
   } catch (err) {
-    console.error('FaunaDB submit error:', err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
+    console.error('Supabase submit error:', err);
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };

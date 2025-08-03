@@ -1,36 +1,27 @@
-const faunadb = require('faunadb');
-
 /*
- * Retrieve all survey responses from the `responses` collection.  This
- * function returns an array of data objects containing the username,
- * timestamp and answers fields.  Paginate is used with a high size to
- * return all documents.  Adjust the size or implement pagination when
- * working with large datasets.
+ * Retrieve all survey responses from the `responses` table using Supabase.
+ * Returns an array of response objects with username, timestamp and answers.
  */
-const q = faunadb.query;
-const client = new faunadb.Client({
-  secret: process.env.FAUNADB_SECRET,
-});
+/* Use the global fetch API available in Node 18+ */
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async function () {
   try {
-    const page = await client.query(
-      q.Paginate(q.Documents(q.Collection('responses')), { size: 100000 })
-    );
-    const refs = page.data;
-    const docs = await client.query(
-      refs.map((ref) => q.Get(ref))
-    );
-    const results = docs.map((doc) => doc.data);
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ results }),
-    };
+    const res = await fetch(`${supabaseUrl}/rest/v1/responses?select=username,timestamp,answers`, {
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+    });
+    if (!res.ok) {
+      const errBody = await res.text();
+      return { statusCode: res.status, body: errBody };
+    }
+    const results = await res.json();
+    return { statusCode: 200, body: JSON.stringify({ results }) };
   } catch (err) {
-    console.error('FaunaDB get results error:', err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
+    console.error('Supabase get results error:', err);
+    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };

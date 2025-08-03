@@ -1,15 +1,12 @@
-const faunadb = require('faunadb');
-
 /*
- * Authenticate a user by username and password.  This function expects a
- * POST request with JSON containing `username` and `password`.  It looks up
- * the user document using the `users_by_username` index and compares
- * the stored password.  A successful login returns `{ success: true }`.
+ * Authenticate a user by username and password using Supabase's REST API.
+ * A POST request with JSON `{ username, password }` is expected.  The
+ * service role key and project URL must be provided in the environment
+ * variables `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`.
  */
-const q = faunadb.query;
-const client = new faunadb.Client({
-  secret: process.env.FAUNADB_SECRET,
-});
+/* Use the global fetch API available in Node 18+ */
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 exports.handler = async function (event) {
   if (event.httpMethod !== 'POST') {
@@ -35,27 +32,37 @@ exports.handler = async function (event) {
     };
   }
   try {
-    const userDoc = await client.query(
-      q.Get(q.Match(q.Index('users_by_username'), username))
-    );
-    const stored = userDoc.data;
-    if (stored.password === password) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ success: true }),
-      };
-    } else {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ error: 'Incorrect password' }),
-      };
+    // Fetch the user by username
+    const res = await fetch(`${supabaseUrl}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=username,password`, {
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+    });
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      const user = data[0];
+      if (user.password === password) {
+        return {
+          statusCode: 200,
+          body: JSON.stringify({ success: true }),
+        };
+      } else {
+        return {
+          statusCode: 401,
+          body: JSON.stringify({ error: 'Incorrect password' }),
+        };
+      }
     }
-  } catch (err) {
-    // When no document matches, Fauna throws an error.  In that case, we
-    // treat it as an unknown user.
     return {
       statusCode: 401,
       body: JSON.stringify({ error: 'User not found' }),
+    };
+  } catch (err) {
+    console.error('Supabase login error:', err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };

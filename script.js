@@ -1,34 +1,12 @@
-/*
- * Helper functions to interact with Netlify serverless endpoints.
- * These replace the previous localStorage helpers and allow the app to
- * persist data in FaunaDB.  Each function returns a promise that
- * resolves to the parsed JSON response.
- */
-async function registerUserRemote(username, password) {
-  const res = await fetch('/.netlify/functions/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  return res.json();
+// Helper: load users from localStorage
+function loadUsers() {
+  const usersJSON = localStorage.getItem('users');
+  return usersJSON ? JSON.parse(usersJSON) : {};
 }
 
-async function loginUserRemote(username, password) {
-  const res = await fetch('/.netlify/functions/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  return res.json();
-}
-
-async function submitSurveyRemote(username, answers) {
-  const res = await fetch('/.netlify/functions/submit-survey', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, answers })
-  });
-  return res.json();
+// Helper: save users to localStorage
+function saveUsers(users) {
+  localStorage.setItem('users', JSON.stringify(users));
 }
 
 
@@ -306,7 +284,7 @@ function renderSurveyQuestions() {
 }
 
 // Submit survey handler
-async function submitSurvey() {
+function submitSurvey() {
   const currentUser = sessionStorage.getItem('currentUser');
   if (!currentUser) {
     alert('请先登录。');
@@ -364,23 +342,19 @@ async function submitSurvey() {
   if (!valid) {
     return;
   }
-  // Persist response via Netlify serverless function
-  try {
-    const remoteResult = await submitSurveyRemote(currentUser, responses);
-    if (remoteResult && remoteResult.success) {
-      // Reset form
-      document.getElementById('surveyForm').reset();
-      messageEl.style.color = '#2a7b3f';
-      messageEl.textContent = '感谢您的填写！';
-    } else {
-      messageEl.style.color = '#c52d2f';
-      messageEl.textContent = remoteResult.error || '提交失败，请稍后再试。';
-    }
-  } catch (err) {
-    console.error('Submit survey error:', err);
-    messageEl.style.color = '#c52d2f';
-    messageEl.textContent = '提交失败，请稍后再试。';
-  }
+  // Save response
+  const allResponses = JSON.parse(localStorage.getItem('responses') || '[]');
+  const entry = {
+    username: currentUser,
+    timestamp: new Date().toISOString(),
+    answers: responses
+  };
+  allResponses.push(entry);
+  localStorage.setItem('responses', JSON.stringify(allResponses));
+  // Reset form or disable submit
+  document.getElementById('surveyForm').reset();
+  messageEl.style.color = '#2a7b3f';
+  messageEl.textContent = '感谢您的填写！';
 }
 
 // Event listeners after DOM loaded
@@ -399,43 +373,37 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginTab').addEventListener('click', () => switchAuthTab('login'));
   document.getElementById('registerTab').addEventListener('click', () => switchAuthTab('register'));
   // Login action
-  document.getElementById('loginButton').addEventListener('click', async () => {
+  document.getElementById('loginButton').addEventListener('click', () => {
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
     const messageEl = document.getElementById('loginMessage');
     messageEl.style.color = '#c52d2f';
-    messageEl.textContent = '';
+    const users = loadUsers();
     if (!username || !password) {
       messageEl.textContent = '请输入账号和密码。';
       return;
     }
-    try {
-      const result = await loginUserRemote(username, password);
-      if (result.success) {
-        // login success
-        sessionStorage.setItem('currentUser', username);
-        document.getElementById('authContainer').classList.add('hidden');
-        document.getElementById('surveyContainer').classList.remove('hidden');
-        // show admin link if username indicates admin
-        if (username.toLowerCase() === 'admin' || username === '管理员') {
-          document.getElementById('adminLink').classList.remove('hidden');
-        }
-        renderSurveyQuestions();
-      } else {
-        messageEl.textContent = result.error || '账号或密码错误。';
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      messageEl.textContent = '登录失败，请稍后再试。';
+    if (!users[username] || users[username] !== password) {
+      messageEl.textContent = '账号或密码错误。';
+      return;
     }
+    // Login success
+    sessionStorage.setItem('currentUser', username);
+    messageEl.textContent = '';
+    document.getElementById('authContainer').classList.add('hidden');
+    document.getElementById('surveyContainer').classList.remove('hidden');
+    // Show admin link if admin
+    if (username.toLowerCase() === 'admin' || username === '管理员') {
+      document.getElementById('adminLink').classList.remove('hidden');
+    }
+    renderSurveyQuestions();
   });
   // Register action
-  document.getElementById('registerButton').addEventListener('click', async () => {
+  document.getElementById('registerButton').addEventListener('click', () => {
     const username = document.getElementById('registerUsername').value.trim();
     const password = document.getElementById('registerPassword').value;
     const messageEl = document.getElementById('registerMessage');
     messageEl.style.color = '#c52d2f';
-    messageEl.textContent = '';
     if (!username || !password) {
       messageEl.textContent = '请输入账号和密码。';
       return;
@@ -445,19 +413,17 @@ window.addEventListener('DOMContentLoaded', () => {
       messageEl.textContent = '账号格式应为“姓名-ID”。';
       return;
     }
-    try {
-      const result = await registerUserRemote(username, password);
-      if (result.success) {
-        messageEl.style.color = '#2a7b3f';
-        messageEl.textContent = '注册成功，请前往登录。';
-        switchAuthTab('login');
-      } else {
-        messageEl.textContent = result.error || '注册失败。';
-      }
-    } catch (err) {
-      console.error('Register error:', err);
-      messageEl.textContent = '注册失败，请稍后再试。';
+    const users = loadUsers();
+    if (users[username]) {
+      messageEl.textContent = '该账号已存在。';
+      return;
     }
+    users[username] = password;
+    saveUsers(users);
+    messageEl.style.color = '#2a7b3f';
+    messageEl.textContent = '注册成功，请前往登录。';
+    // Optionally switch to login tab
+    switchAuthTab('login');
   });
   // Submit survey
   document.getElementById('submitSurveyButton').addEventListener('click', submitSurvey);
