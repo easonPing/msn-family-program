@@ -1,12 +1,70 @@
-// Helper: load users from localStorage
-function loadUsers() {
-  const usersJSON = localStorage.getItem('users');
-  return usersJSON ? JSON.parse(usersJSON) : {};
+// Remote API base path for Netlify functions.  All user and survey
+// operations are proxied through serverless functions that talk to
+// Supabase.  Each function resides at `/.netlify/functions/<name>`.
+const API_BASE = '/.netlify/functions';
+
+/**
+ * Register a new user via the Netlify function.
+ * Returns an object with either `{ success: true }` or `{ error: '...' }`.
+ */
+async function registerUserRemote(username, password) {
+  const res = await fetch(`${API_BASE}/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  try {
+    const data = await res.json();
+    if (!res.ok) {
+      // wrap error message into error property
+      return { error: data.error || '注册失败' };
+    }
+    return data;
+  } catch (e) {
+    return { error: '请求失败，请稍后再试' };
+  }
 }
 
-// Helper: save users to localStorage
-function saveUsers(users) {
-  localStorage.setItem('users', JSON.stringify(users));
+/**
+ * Authenticate a user via the Netlify function.
+ * Returns `{ success: true }` on success or `{ error: '...' }` on failure.
+ */
+async function loginUserRemote(username, password) {
+  const res = await fetch(`${API_BASE}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  try {
+    const data = await res.json();
+    if (!res.ok) {
+      return { error: data.error || '登录失败' };
+    }
+    return data;
+  } catch (e) {
+    return { error: '请求失败，请稍后再试' };
+  }
+}
+
+/**
+ * Submit survey answers via the Netlify function.
+ * Returns `{ success: true }` or an error object.
+ */
+async function submitSurveyRemote(username, answers) {
+  const res = await fetch(`${API_BASE}/submit-survey`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, answers })
+  });
+  try {
+    const data = await res.json();
+    if (!res.ok) {
+      return { error: data.error || '提交失败' };
+    }
+    return data;
+  } catch (e) {
+    return { error: '请求失败，请稍后再试' };
+  }
 }
 
 
@@ -342,19 +400,18 @@ function submitSurvey() {
   if (!valid) {
     return;
   }
-  // Save response
-  const allResponses = JSON.parse(localStorage.getItem('responses') || '[]');
-  const entry = {
-    username: currentUser,
-    timestamp: new Date().toISOString(),
-    answers: responses
-  };
-  allResponses.push(entry);
-  localStorage.setItem('responses', JSON.stringify(allResponses));
-  // Reset form or disable submit
-  document.getElementById('surveyForm').reset();
-  messageEl.style.color = '#2a7b3f';
-  messageEl.textContent = '感谢您的填写！';
+  // Persist response to Supabase via Netlify function
+  submitSurveyRemote(currentUser, responses).then((result) => {
+    if (result.error) {
+      messageEl.style.color = '#c52d2f';
+      messageEl.textContent = result.error;
+    } else {
+      // Reset form
+      document.getElementById('surveyForm').reset();
+      messageEl.style.color = '#2a7b3f';
+      messageEl.textContent = '感谢您的填写！';
+    }
+  });
 }
 
 // Event listeners after DOM loaded
@@ -372,33 +429,34 @@ window.addEventListener('DOMContentLoaded', () => {
   // Auth tabs
   document.getElementById('loginTab').addEventListener('click', () => switchAuthTab('login'));
   document.getElementById('registerTab').addEventListener('click', () => switchAuthTab('register'));
-  // Login action
+  // Login action: call remote login
   document.getElementById('loginButton').addEventListener('click', () => {
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value;
     const messageEl = document.getElementById('loginMessage');
     messageEl.style.color = '#c52d2f';
-    const users = loadUsers();
     if (!username || !password) {
       messageEl.textContent = '请输入账号和密码。';
       return;
     }
-    if (!users[username] || users[username] !== password) {
-      messageEl.textContent = '账号或密码错误。';
-      return;
-    }
-    // Login success
-    sessionStorage.setItem('currentUser', username);
-    messageEl.textContent = '';
-    document.getElementById('authContainer').classList.add('hidden');
-    document.getElementById('surveyContainer').classList.remove('hidden');
-    // Show admin link if admin
-    if (username.toLowerCase() === 'admin' || username === '管理员') {
-      document.getElementById('adminLink').classList.remove('hidden');
-    }
-    renderSurveyQuestions();
+    loginUserRemote(username, password).then((result) => {
+      if (result.error) {
+        messageEl.textContent = result.error;
+        return;
+      }
+      // Login success
+      sessionStorage.setItem('currentUser', username);
+      messageEl.textContent = '';
+      document.getElementById('authContainer').classList.add('hidden');
+      document.getElementById('surveyContainer').classList.remove('hidden');
+      // Show admin link if admin
+      if (username.toLowerCase() === 'admin' || username === '管理员' || username.toLowerCase().includes('admin')) {
+        document.getElementById('adminLink').classList.remove('hidden');
+      }
+      renderSurveyQuestions();
+    });
   });
-  // Register action
+  // Register action: call remote register
   document.getElementById('registerButton').addEventListener('click', () => {
     const username = document.getElementById('registerUsername').value.trim();
     const password = document.getElementById('registerPassword').value;
@@ -413,17 +471,15 @@ window.addEventListener('DOMContentLoaded', () => {
       messageEl.textContent = '账号格式应为“姓名-ID”。';
       return;
     }
-    const users = loadUsers();
-    if (users[username]) {
-      messageEl.textContent = '该账号已存在。';
-      return;
-    }
-    users[username] = password;
-    saveUsers(users);
-    messageEl.style.color = '#2a7b3f';
-    messageEl.textContent = '注册成功，请前往登录。';
-    // Optionally switch to login tab
-    switchAuthTab('login');
+    registerUserRemote(username, password).then((result) => {
+      if (result.error) {
+        messageEl.textContent = result.error;
+        return;
+      }
+      messageEl.style.color = '#2a7b3f';
+      messageEl.textContent = '注册成功，请前往登录。';
+      switchAuthTab('login');
+    });
   });
   // Submit survey
   document.getElementById('submitSurveyButton').addEventListener('click', submitSurvey);
