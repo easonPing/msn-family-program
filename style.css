@@ -52,50 +52,71 @@ header {
   z-index: 300;
 }
 
-.modal-content {
+/* First modal image wrapper */
+.modal-image-wrapper {
   display: flex;
-  background-color: rgba(255, 255, 255, 0.9);
+  justify-content: center;
+  align-items: center;
+  width: 800px;
+  height: 450px;
+  margin: 0 auto;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   border-radius: 10px;
-  overflow: hidden;
-  width: 90%;
-  max-width: 900px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 
-.modal-left {
+/* Second modal layout */
+.second-content {
+  display: flex;
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.left-images {
   flex: 2;
-  padding: 10px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  width: 66.66%;
 }
 
-.modal-right {
+.left-images .row {
+  display: flex;
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f8f8f8;
-}
-
-.photo-grid {
   width: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-gap: 10px;
 }
 
-.photo-cell {
-  background-color: #fafafa;
-  border: 2px dashed #ccc;
-  border-radius: 6px;
-  min-height: 80px;
-}
-
-.modal-img {
-  width: 100%;
-  height: auto;
+.left-images .row img {
+  width: 50%;
+  height: 100%;
   object-fit: cover;
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+
+.right-image {
+  flex: 1;
+  width: 33.33%;
+  display: flex;
+}
+
+.right-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  margin: 0;
+  padding: 0;
+  display: block;
 }
 
 .primary-btn {

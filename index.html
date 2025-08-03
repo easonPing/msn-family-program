@@ -12,24 +12,31 @@
     <img src="MSN%20LOGO.png" alt="MSN Logo" class="logo">
   </header>
 
-  <!-- Modal overlay shown on first load -->
-  <div id="introModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-left">
-        <!-- Four placeholders for photos -->
-        <div class="photo-grid">
-          <div class="photo-cell" id="placeholder1"></div>
-          <div class="photo-cell" id="placeholder2"></div>
-          <div class="photo-cell" id="placeholder3"></div>
-          <div class="photo-cell" id="placeholder4"></div>
+  <!-- First modal: dark overlay with a single cover image -->
+  <div id="introModal1" class="modal">
+    <div class="modal-image-wrapper">
+      <img src="cover_1.jpg" alt="Cover" class="cover-image">
+    </div>
+  </div>
+
+  <!-- Second modal: display four Family images and one tall image -->
+  <div id="introModal2" class="modal hidden">
+    <div class="second-content">
+      <div class="left-images">
+        <div class="row">
+          <img src="family_1.jpg" alt="Family 1">
+          <img src="family_2.jpg" alt="Family 2">
+        </div>
+        <div class="row">
+          <img src="family_3.jpg" alt="Family 3">
+          <img src="family_4.jpg" alt="Family 4">
         </div>
       </div>
-      <div class="modal-right">
-        <!-- Image on the right side of modal -->
-        <img src="cloud_bg_mobile.jpg" alt="Decoration" class="modal-img">
+      <div class="right-image">
+        <img src="cover_2.jpg" alt="Cover 2">
       </div>
     </div>
-    <button id="startButton" class="primary-btn">进入网站</button>
+    <button id="enterSiteButton" class="primary-btn">进入网站</button>
   </div>
 
   <!-- Login/Register container -->

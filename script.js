@@ -9,9 +9,19 @@ function saveUsers(users) {
   localStorage.setItem('users', JSON.stringify(users));
 }
 
-// Close modal and show authentication container
-function closeIntroModal() {
-  document.getElementById('introModal').style.display = 'none';
+
+// Show second modal when clicking on the first cover image
+function showSecondModal() {
+  const modal1 = document.getElementById('introModal1');
+  const modal2 = document.getElementById('introModal2');
+  if (modal1) modal1.classList.add('hidden');
+  if (modal2) modal2.classList.remove('hidden');
+}
+
+// Close second modal and show authentication container
+function closeSecondModal() {
+  const modal2 = document.getElementById('introModal2');
+  if (modal2) modal2.classList.add('hidden');
   document.getElementById('authContainer').classList.remove('hidden');
 }
 
@@ -349,8 +359,16 @@ function submitSurvey() {
 
 // Event listeners after DOM loaded
 window.addEventListener('DOMContentLoaded', () => {
-  // Modal start button
-  document.getElementById('startButton').addEventListener('click', closeIntroModal);
+  // First modal click to transition to second modal
+  const intro1 = document.getElementById('introModal1');
+  if (intro1) {
+    intro1.addEventListener('click', showSecondModal);
+  }
+  // Second modal enter button
+  const enterBtn = document.getElementById('enterSiteButton');
+  if (enterBtn) {
+    enterBtn.addEventListener('click', closeSecondModal);
+  }
   // Auth tabs
   document.getElementById('loginTab').addEventListener('click', () => switchAuthTab('login'));
   document.getElementById('registerTab').addEventListener('click', () => switchAuthTab('register'));
