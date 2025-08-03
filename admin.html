@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>后台管理 - Family Program 问卷</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <img src="MSN%20LOGO.png" alt="MSN Logo" class="logo">
+  </header>
+  <div class="survey-container">
+    <h2>问卷结果汇总</h2>
+    <div id="resultsContainer"></div>
+    <button id="clearButton" class="primary-btn">清空所有记录</button>
+    <p id="clearMessage" class="message"></p>
+  </div>
+  <script>
+    function loadResults() {
+      const container = document.getElementById('resultsContainer');
+      container.innerHTML = '';
+      const responses = JSON.parse(localStorage.getItem('responses') || '[]');
+      if (responses.length === 0) {
+        container.textContent = '暂无问卷记录。';
+        return;
+      }
+      const table = document.createElement('table');
+      table.style.width = '100%';
+      table.style.borderCollapse = 'collapse';
+      const headerRow = document.createElement('tr');
+      const headers = ['账号', '时间', 'Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8', 'Q9', 'Q10', 'Q11', 'Q12', 'Q13', 'Q14', 'Q15', 'Q16'];
+      headers.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        th.style.border = '1px solid #ccc';
+        th.style.padding = '6px';
+        th.style.backgroundColor = '#f5f5f5';
+        th.style.fontSize = '12px';
+        headerRow.appendChild(th);
+      });
+      table.appendChild(headerRow);
+      responses.forEach(res => {
+        const tr = document.createElement('tr');
+        const cells = [];
+        cells.push(res.username);
+        cells.push(new Date(res.timestamp).toLocaleString());
+        for (let i = 1; i <= 14; i++) {
+          cells.push(res.answers['q' + i] || '');
+        }
+        // Q15 array to comma-separated letters
+        const q15 = res.answers['q15'] ? res.answers['q15'].join(',') : '';
+        cells.push(q15);
+        // Q16 rank array
+        const q16 = res.answers['q16'] ? res.answers['q16'].join('>') : '';
+        cells.push(q16);
+        cells.forEach(cell => {
+          const td = document.createElement('td');
+          td.textContent = cell;
+          td.style.border = '1px solid #ccc';
+          td.style.padding = '4px';
+          td.style.fontSize = '12px';
+          tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+      container.appendChild(table);
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      loadResults();
+      document.getElementById('clearButton').addEventListener('click', () => {
+        const msgEl = document.getElementById('clearMessage');
+        if (confirm('确定要删除所有记录吗？此操作不可撤销。')) {
+          localStorage.removeItem('responses');
+          msgEl.style.color = '#2a7b3f';
+          msgEl.textContent = '所有记录已清空。';
+          loadResults();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MSN Family Program Survey</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header with logo -->
+  <header>
+    <img src="MSN%20LOGO.png" alt="MSN Logo" class="logo">
+  </header>
+
+  <!-- Modal overlay shown on first load -->
+  <div id="introModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-left">
+        <!-- Four placeholders for photos -->
+        <div class="photo-grid">
+          <div class="photo-cell" id="placeholder1"></div>
+          <div class="photo-cell" id="placeholder2"></div>
+          <div class="photo-cell" id="placeholder3"></div>
+          <div class="photo-cell" id="placeholder4"></div>
+        </div>
+      </div>
+      <div class="modal-right">
+        <!-- Image on the right side of modal -->
+        <img src="cloud_bg_mobile.jpg" alt="Decoration" class="modal-img">
+      </div>
+    </div>
+    <button id="startButton" class="primary-btn">进入网站</button>
+  </div>
+
+  <!-- Login/Register container -->
+  <div id="authContainer" class="auth-container hidden">
+    <div class="auth-tabs">
+      <button id="loginTab" class="auth-tab active">登录</button>
+      <button id="registerTab" class="auth-tab">注册</button>
+    </div>
+    <div id="loginForm" class="auth-form">
+      <h2>用户登录</h2>
+      <label for="loginUsername">账号（姓名-ID）：</label>
+      <input type="text" id="loginUsername" placeholder="姓名-ID" required>
+      <label for="loginPassword">密码：</label>
+      <input type="password" id="loginPassword" placeholder="请输入密码" required>
+      <button id="loginButton" class="primary-btn">登录</button>
+      <p id="loginMessage" class="message"></p>
+    </div>
+    <div id="registerForm" class="auth-form hidden">
+      <h2>用户注册</h2>
+      <label for="registerUsername">账号（姓名-ID）：</label>
+      <input type="text" id="registerUsername" placeholder="姓名-ID" required>
+      <label for="registerPassword">密码：</label>
+      <input type="password" id="registerPassword" placeholder="请输入密码" required>
+      <button id="registerButton" class="primary-btn">注册</button>
+      <p id="registerMessage" class="message"></p>
+    </div>
+  </div>
+
+  <!-- Survey container shown after login -->
+  <div id="surveyContainer" class="survey-container hidden">
+    <h2>Family Program 问卷调查</h2>
+    <form id="surveyForm">
+      <!-- Questions will be injected here by JavaScript -->
+    </form>
+    <button id="submitSurveyButton" class="primary-btn">提交问卷</button>
+    <p id="surveyMessage" class="message"></p>
+  </div>
+
+  <!-- Link to admin page (hidden until after login by admin) -->
+  <a href="admin.html" id="adminLink" class="admin-link hidden">后台管理</a>
+
+  <script src="script.js"></script>
+</body>
+</html>
