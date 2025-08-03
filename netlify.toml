@@ -1,0 +1,9 @@
+[build]
+  # Directory with our built functions
+  functions = "netlify/functions"
+  # Publish the root directory which contains our HTML, CSS and JS
+  publish = "."
+
+# Optional: set the Node version if your functions require a specific version
+# [build.environment]
+#   NODE_VERSION = "18"
