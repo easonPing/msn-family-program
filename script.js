@@ -83,6 +83,18 @@ function closeSecondModal() {
   document.getElementById('authContainer').classList.remove('hidden');
 }
 
+// Show the success submission modal
+function showSuccessModal() {
+  const modal = document.getElementById('successModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+// Close the success submission modal
+function closeSuccessModal() {
+  const modal = document.getElementById('successModal');
+  if (modal) modal.classList.add('hidden');
+}
+
 // Switch between login and register forms
 function switchAuthTab(tab) {
   const loginTab = document.getElementById('loginTab');
@@ -408,8 +420,10 @@ function submitSurvey() {
     } else {
       // Reset form
       document.getElementById('surveyForm').reset();
-      messageEl.style.color = '#2a7b3f';
-      messageEl.textContent = '感谢您的填写！';
+      // Clear any existing survey message
+      messageEl.textContent = '';
+      // Show success modal
+      showSuccessModal();
     }
   });
 }
@@ -483,4 +497,10 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   // Submit survey
   document.getElementById('submitSurveyButton').addEventListener('click', submitSurvey);
+
+  // Success modal close button
+  const successBtn = document.getElementById('successCloseButton');
+  if (successBtn) {
+    successBtn.addEventListener('click', closeSuccessModal);
+  }
 });

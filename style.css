@@ -263,3 +263,26 @@ header {
 .admin-link:hover {
   background-color: #9b2325;
 }
+
+/* Success modal content */
+#successModal .success-content {
+  background-color: #ffffff;
+  padding: 30px 20px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+#successModal h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  color: #c52d2f;
+}
+
+#successModal p {
+  margin: 0 0 20px;
+  font-size: 16px;
+  line-height: 1.4;
+}
